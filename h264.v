@@ -884,7 +884,7 @@ pub fn (mut sh SliceHeader) read_slice_header(nal &NetworkAbstractionLayerHeader
 	}
 	sh.read_ref_pic_list_reordering(mut b)
 	if pps.weighted_pred_flag != 0
-		&& ((sh.is_slice_type(SH_SLICE_TYPE.p) || sh.is_slice_type(SH_SLICE_TYPE.sp))
+		&& (sh.is_slice_type(SH_SLICE_TYPE.p) || sh.is_slice_type(SH_SLICE_TYPE.sp)
 		|| (pps.weighted_bipred_idc == 1 && sh.is_slice_type(SH_SLICE_TYPE.b))) {
 		sh.read_pred_weight_table(sps, pps, mut b)
 	}
