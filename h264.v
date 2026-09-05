@@ -162,11 +162,11 @@ pub mut:
 }
 
 pub enum SH_SLICE_TYPE {
-	p       = 0
-	b       = 1
-	i       = 2
-	sp      = 3
-	si      = 4
+	p  = 0
+	b  = 1
+	i  = 2
+	sp = 3
+	si = 4
 	// The ONLY slice types indicating that all other slices in that picture are of the same type
 	p_only  = 5
 	b_only  = 6
@@ -265,16 +265,16 @@ pub enum NAL_REF_IDC {
 }
 
 pub enum NAL_UNIT_TYPE {
-	unspecified                  = 0 // Unspecified
-	coded_slice_non_idr          = 1 // Coded slice of a non-IDR picture
-	coded_slice_data_partition_a = 2 // Coded slice data partition A
-	coded_slice_data_partition_b = 3 // Coded slice data partition B
-	coded_slice_data_partition_c = 4 // Coded slice data partition C
-	coded_slice_idr              = 5 // Coded slice of an IDR picture
-	sei                          = 6 // Supplemental enhancement information (SEI)
-	sps                          = 7 // Sequence parameter set
-	pps                          = 8 // Picture parameter set
-	aud                          = 9 // Access unit delimiter
+	unspecified                  = 0  // Unspecified
+	coded_slice_non_idr          = 1  // Coded slice of a non-IDR picture
+	coded_slice_data_partition_a = 2  // Coded slice data partition A
+	coded_slice_data_partition_b = 3  // Coded slice data partition B
+	coded_slice_data_partition_c = 4  // Coded slice data partition C
+	coded_slice_idr              = 5  // Coded slice of an IDR picture
+	sei                          = 6  // Supplemental enhancement information (SEI)
+	sps                          = 7  // Sequence parameter set
+	pps                          = 8  // Picture parameter set
+	aud                          = 9  // Access unit delimiter
 	end_of_sequence              = 10 // End of sequence
 	end_of_stream                = 11 // End of stream
 	filler                       = 12 // Filler data
@@ -484,9 +484,7 @@ pub fn (mut sps SequenceParameterSet) read_vui_parameters(mut b Bitstream) {
 pub fn intlog2(x i32) i32 {
 	mut log := i32(0)
 	mut xx := x
-	if xx < 0 {
-		xx = 0
-	}
+	if xx < 0 { xx = 0 }
 	for (xx >> log) > 0 {
 		log++
 	}
@@ -516,10 +514,7 @@ pub fn intlog2(val i32) i32 {
 
 pub fn (mut b Bitstream) more_rbsp_data() bool {
 	// No more data
-	if b.eof() {
-		return false
-	}
-
+	if b.eof() { return false }
 	// Don't copy the whole stream, just restore the original index
 	/*
   mut bs_tmp := Bitstream{
@@ -543,15 +538,11 @@ pub fn (mut b Bitstream) more_rbsp_data() bool {
 	}
 
 	// No rbsp_stop_bit yet
-	if b.u1() == 0 {
-		return true
-	}
+	if b.u1() == 0 { return true }
 
 	for !b.eof() {
 		// A later bit was 1, it wasn't the rsbp_stop_bit
-		if b.u1() == 1 {
-			return true
-		}
+		if b.u1() == 1 { return true }
 	}
 
 	// All following bits were 0, it was the rsbp_stop_bit
@@ -586,9 +577,11 @@ pub fn (mut sps SequenceParameterSet) read_sps(mut b Bitstream) {
 				sps.seq_scaling_list_present_flag[i] = b.u1()
 				if sps.seq_scaling_list_present_flag[i] != 0 {
 					if i < 6 {
-						b.read_scaling_list(mut sps.scaling_list_4x4[i][0..], 16, mut &sps.use_default_scaling_matrix_4x4_flag[i])
+						b.read_scaling_list(mut sps.scaling_list_4x4[i][0..], 16, mut
+							&sps.use_default_scaling_matrix_4x4_flag[i])
 					} else {
-						b.read_scaling_list(mut sps.scaling_list_8x8[i - 6][0..], 64, mut &sps.use_default_scaling_matrix_8x8_flag[i - 6])
+						b.read_scaling_list(mut sps.scaling_list_8x8[i - 6][0..], 64, mut
+							&sps.use_default_scaling_matrix_8x8_flag[i - 6])
 					}
 				}
 			}
@@ -684,9 +677,11 @@ pub fn (mut pps PictureParameterSet) read_pps(mut b Bitstream) {
 				if pps.pic_scaling_list_present_flag[i] != 0 {
 					if i < 6 {
 						// Make it a slice to get a dynamic array
-						b.read_scaling_list(mut pps.scaling_list_4x4[i][0..], 16, mut &pps.use_default_scaling_matrix_4x4_flag[i])
+						b.read_scaling_list(mut pps.scaling_list_4x4[i][0..], 16, mut
+							&pps.use_default_scaling_matrix_4x4_flag[i])
 					} else {
-						b.read_scaling_list(mut pps.scaling_list_8x8[i - 6][0..], 64, mut &pps.use_default_scaling_matrix_8x8_flag[i - 6])
+						b.read_scaling_list(mut pps.scaling_list_8x8[i - 6][0..], 64, mut
+							&pps.use_default_scaling_matrix_8x8_flag[i - 6])
 					}
 				}
 			}
@@ -699,15 +694,9 @@ pub fn (mut pps PictureParameterSet) read_pps(mut b Bitstream) {
 pub fn (sh SliceHeader) is_slice_type(cmp_type SH_SLICE_TYPE) bool {
 	mut mslice_type := sh.slice_type
 	mut mcmp_type := u32(cmp_type)
-	if mslice_type >= 5 {
-		mslice_type -= 5
-	}
-	if mcmp_type >= 5 {
-		mcmp_type -= 5
-	}
-	if mslice_type == mcmp_type {
-		return true
-	}
+	if mslice_type >= 5 { mslice_type -= 5 }
+	if mcmp_type >= 5 { mcmp_type -= 5 }
+	if mslice_type == mcmp_type { return true }
 	return false
 }
 
@@ -895,8 +884,8 @@ pub fn (mut sh SliceHeader) read_slice_header(nal &NetworkAbstractionLayerHeader
 	}
 	sh.read_ref_pic_list_reordering(mut b)
 	if pps.weighted_pred_flag != 0
-		&& (sh.is_slice_type(SH_SLICE_TYPE.p) || sh.is_slice_type(SH_SLICE_TYPE.sp)
-			|| (pps.weighted_bipred_idc == 1 && sh.is_slice_type(SH_SLICE_TYPE.b))) {
+		&& ((sh.is_slice_type(SH_SLICE_TYPE.p) || sh.is_slice_type(SH_SLICE_TYPE.sp))
+		|| (pps.weighted_bipred_idc == 1 && sh.is_slice_type(SH_SLICE_TYPE.b))) {
 		sh.read_pred_weight_table(sps, pps, mut b)
 	}
 	if nal.idc != NAL_REF_IDC.priority_disposable {
