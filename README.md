@@ -12,13 +12,13 @@ parsed structures to prepare hardware decode operations.
 ## Install
 
 ```bash
-v install https://github.com/antono2/h264
+v install antono2.h264
 ```
 
 ## Minimal example
 
 ```v
-import h264
+import antono2.h264
 
 mut stream := h264.Bitstream{}
 stream.init([u8(0x67)]) // forbidden_zero_bit=0, nal_ref_idc=3, type=SPS

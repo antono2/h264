@@ -1,5 +1,5 @@
 Module {
-  name: 'h264'
+  name: 'antono2.h264'
   author: 'Anton Oreskin'
   description: 'Low-level H.264 bitstream and parameter-set parser'
   version: '1.0.0'
