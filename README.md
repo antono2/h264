@@ -51,5 +51,6 @@ The included tests are software-only and require no GPU:
 v test .
 ```
 
-They cover RBSP look-ahead behavior and representative High-profile SPS/PPS
-parsing used by the player.
+They cover fixed-width and Exp-Golomb bit reading, truncated input behavior,
+NAL headers, RBSP look-ahead, integer bit widths, and representative
+High-profile SPS/PPS parsing used by the player.
