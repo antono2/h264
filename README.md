@@ -1,6 +1,6 @@
 # H.264 bitstream parser for V
 
-[Project portfolio](https://oreskin.de/projects_en.php) · [Support independent development](https://oreskin.de/dono_en.php)
+[Project portfolio](https://oreskin.de/projects_en.php)
 
 This module parses the H.264/AVC syntax needed by Vulkan Video applications:
 NAL headers, sequence and picture parameter sets (SPS/PPS), video usability
