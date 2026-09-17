@@ -17,6 +17,13 @@ parsed structures to prepare hardware decode operations.
 v install antono2.h264
 ```
 
+## Platform support
+
+The parser is implemented entirely in V and has no native library or GPU
+dependency. CI runs the complete test suite on Linux and on Windows Server 2022
+with MSVC. Windows 10/11 x64 users can install and import the module with the
+same `v install` command shown above.
+
 ## Minimal example
 
 ```v
@@ -47,10 +54,15 @@ bit depth, chroma format, or interlaced stream.
 
 ## Tests
 
-The included tests are software-only and require no GPU:
+The included tests are software-only and require no GPU. Run them with the
+default compiler, or select MSVC on Windows:
 
 ```bash
 v test .
+```
+
+```powershell
+v -cc msvc test .
 ```
 
 They cover fixed-width and Exp-Golomb bit reading, truncated input behavior,
