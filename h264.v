@@ -371,7 +371,7 @@ pub fn (mut nal NetworkAbstractionLayerHeader) read_nal_header(mut b Bitstream) 
 	nal.type = unsafe { NAL_UNIT_TYPE(b.u(5)) }
 }
 
-pub fn (mut b Bitstream) read_scaling_list(mut scaling_list []i32, size_of_scaling_list i32, mut use_default_scaling_matrix_flag &u32) {
+pub fn (mut b Bitstream) read_scaling_list(mut scaling_list []i32, size_of_scaling_list i32, use_default_scaling_matrix_flag &u32) {
 	mut last_scale := i32(8)
 	mut next_scale := i32(8)
 	mut delta_scale := i32(0)
@@ -577,11 +577,19 @@ pub fn (mut sps SequenceParameterSet) read_sps(mut b Bitstream) {
 				sps.seq_scaling_list_present_flag[i] = b.u1()
 				if sps.seq_scaling_list_present_flag[i] != 0 {
 					if i < 6 {
-						b.read_scaling_list(mut sps.scaling_list_4x4[i][0..], 16, mut
+						mut list := []i32{len: 16}
+						b.read_scaling_list(mut list, 16,
 							&sps.use_default_scaling_matrix_4x4_flag[i])
+						for j in 0 .. 16 {
+							sps.scaling_list_4x4[i][j] = list[j]
+						}
 					} else {
-						b.read_scaling_list(mut sps.scaling_list_8x8[i - 6][0..], 64, mut
+						mut list := []i32{len: 64}
+						b.read_scaling_list(mut list, 64,
 							&sps.use_default_scaling_matrix_8x8_flag[i - 6])
+						for j in 0 .. 64 {
+							sps.scaling_list_8x8[i - 6][j] = list[j]
+						}
 					}
 				}
 			}
@@ -676,12 +684,19 @@ pub fn (mut pps PictureParameterSet) read_pps(mut b Bitstream) {
 				pps.pic_scaling_list_present_flag[i] = b.u1()
 				if pps.pic_scaling_list_present_flag[i] != 0 {
 					if i < 6 {
-						// Make it a slice to get a dynamic array
-						b.read_scaling_list(mut pps.scaling_list_4x4[i][0..], 16, mut
+						mut list := []i32{len: 16}
+						b.read_scaling_list(mut list, 16,
 							&pps.use_default_scaling_matrix_4x4_flag[i])
+						for j in 0 .. 16 {
+							pps.scaling_list_4x4[i][j] = list[j]
+						}
 					} else {
-						b.read_scaling_list(mut pps.scaling_list_8x8[i - 6][0..], 64, mut
+						mut list := []i32{len: 64}
+						b.read_scaling_list(mut list, 64,
 							&pps.use_default_scaling_matrix_8x8_flag[i - 6])
+						for j in 0 .. 64 {
+							pps.scaling_list_8x8[i - 6][j] = list[j]
+						}
 					}
 				}
 			}
