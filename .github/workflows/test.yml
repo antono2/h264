@@ -14,27 +14,59 @@ jobs:
   linux:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
-      - uses: prantlf/setup-v-action@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: prantlf/setup-v-action@92f20bea50d2c9931a28c96bb4997a3c7357baf0 # v4
+        with:
+          version: 0.5.2
       - run: v test .
 
   windows:
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v7
-      - uses: prantlf/setup-v-action@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: prantlf/setup-v-action@92f20bea50d2c9931a28c96bb4997a3c7357baf0 # v4
+        with:
+          version: 0.5.2
       - name: Test with the Microsoft C compiler
         run: v -cc msvc test .
 
+  v3:
+    name: Pinned V3 / Linux / TinyCC
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: source
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: vlang/v
+          ref: 0dc6a692ed5333cbe3f05ff63ae0766f0333038a
+          path: toolchain/v
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: vlang/vc
+          ref: 8af812feb76c678abd86a8e682fd9ab2790e519c
+          path: toolchain/v/vc
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: vlang/tccbin
+          ref: d6e7ac1b1bcc98aed734a6ecbfa8509f24606c74
+          path: toolchain/v/thirdparty/tcc
+      - run: make -C toolchain/v local=1
+      - run: toolchain/v/v -new-compiler -cc tcc test source
+
   test:
     if: always()
-    needs: [linux, windows]
+    needs: [linux, windows, v3]
     runs-on: ubuntu-24.04
     steps:
       - name: Verify required platforms
         env:
           LINUX_RESULT: ${{ needs.linux.result }}
           WINDOWS_RESULT: ${{ needs.windows.result }}
+          V3_RESULT: ${{ needs.v3.result }}
         run: |
           test "$LINUX_RESULT" = success
           test "$WINDOWS_RESULT" = success
+          test "$V3_RESULT" = success

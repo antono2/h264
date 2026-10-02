@@ -1,5 +1,50 @@
 module h264
 
+import encoding.hex
+
+fn test_custom_sps_scaling_lists_are_stored() {
+	// FRExt_MMCO4_Sony_B conformance SPS, excluding its NAL header.
+	data :=
+		hex.decode('64001fad9464763b8ac4444a323b1dc5622225191d8ee2b11114222b373669a844566e6cd35088acdcd9a69444cd1b9bc57c9f93f9bf27c9e4e4cd251a4689c9ebe4fd7f27ebe4f5c9a906c694160964')!
+	mut stream := Bitstream{}
+	stream.init(data)
+	mut sps := SequenceParameterSet{}
+	sps.read_sps(mut stream)
+	assert sps.seq_parameter_set_id == 0
+	assert sps.scaling_list_4x4[0][..4] == [i32(6), 12, 12, 19]
+	assert sps.scaling_list_8x8[0][..4] == [i32(6), 10, 10, 13]
+	for i in 0 .. 6 {
+		assert sps.scaling_list_4x4[i][15] != 0
+	}
+	for i in 0 .. 2 {
+		assert sps.scaling_list_8x8[i][63] != 0
+	}
+}
+
+fn test_custom_pps_scaling_list_is_stored() {
+	mut stream := Bitstream{}
+	stream.init(hex.decode('ce3c7fffe0c0')!)
+	mut pps := PictureParameterSet{}
+	pps.read_pps(mut stream)
+	assert pps.pic_scaling_matrix_present_flag == 1
+	for value in pps.scaling_list_4x4[0] {
+		assert value == 8
+	}
+}
+
+fn test_scaling_list_default_flag_points_to_value_not_pointer() {
+	mut stream := Bitstream{}
+	// signed Exp-Golomb -8 makes the first nextScale zero.
+	stream.init([u8(0x08), 0x80])
+	mut list := []i32{len: 16}
+	mut use_default := u32(0)
+	stream.read_scaling_list(mut list, 16, &use_default)
+	assert use_default == 1
+	for value in list {
+		assert value == 8
+	}
+}
+
 fn test_fixed_width_reads_cross_byte_boundaries() {
 	mut stream := Bitstream{}
 	stream.init([u8(0xa5), 0xc0])

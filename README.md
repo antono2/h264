@@ -68,3 +68,11 @@ v -cc msvc test .
 They cover fixed-width and Exp-Golomb bit reading, truncated input behavior,
 NAL headers, RBSP look-ahead, integer bit widths, and representative
 High-profile SPS/PPS parsing used by the player.
+
+CI also runs strict V3 with TinyCC on Linux, using a pinned compiler snapshot.
+The regression samples cover custom SPS/PPS scaling lists and the default-list
+flag. Scaling lists are copied explicitly into their fixed storage arrays.
+
+Callers of `Bitstream.read_scaling_list` should pass the flag as `&flag`, not
+`mut &flag`. The pointer itself is not reassigned; only its pointed-to value is
+written. This avoids a pointer-to-pointer mismatch in V3-generated C.
