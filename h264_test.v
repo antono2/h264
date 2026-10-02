@@ -19,6 +19,14 @@ fn test_custom_sps_scaling_lists_are_stored() {
 	for i in 0 .. 2 {
 		assert sps.scaling_list_8x8[i][63] != 0
 	}
+	// Check the complete persisted record, not sizeof(variable), which current
+	// V3 can evaluate as a heap-promoted pointer's size.
+	mut stored := []u8{}
+	stored << unsafe { byteptr(&sps).vbytes(int(sizeof(SequenceParameterSet))) }
+	assert stored.len == int(sizeof(SequenceParameterSet))
+	record := unsafe { &SequenceParameterSet(stored.data) }
+	assert record.scaling_list_4x4[0][..4] == [i32(6), 12, 12, 19]
+	assert record.scaling_list_8x8[0][..4] == [i32(6), 10, 10, 13]
 }
 
 fn test_custom_pps_scaling_list_is_stored() {
@@ -133,9 +141,9 @@ fn test_parse_sample_high_profile_pps() {
 	assert pps.pic_parameter_set_id == 0
 	assert pps.seq_parameter_set_id == 0
 	mut stored_pps := []u8{}
-	stored_pps.ensure_cap(int(sizeof(pps)))
-	stored_pps << unsafe { byteptr(&pps).vbytes(int(sizeof(pps))) }
-	assert stored_pps.len == int(sizeof(pps))
+	stored_pps.ensure_cap(int(sizeof(PictureParameterSet)))
+	stored_pps << unsafe { byteptr(&pps).vbytes(int(sizeof(PictureParameterSet))) }
+	assert stored_pps.len == int(sizeof(PictureParameterSet))
 }
 
 fn test_persist_sample_parameter_sets() {
@@ -147,16 +155,24 @@ fn test_persist_sample_parameter_sets() {
 	assert sps.profile_idc == 100
 	assert sps.level_idc == 40
 	assert sps.seq_parameter_set_id == 0
+	sps.seq_parameter_set_id = 7
 	mut stored_sps := []u8{}
-	stored_sps << unsafe { byteptr(&sps).vbytes(int(sizeof(sps))) }
+	stored_sps << unsafe { byteptr(&sps).vbytes(int(sizeof(SequenceParameterSet))) }
 
 	mut pps_stream := Bitstream{}
 	pps_stream.init([u8(0xee), 0x0d, 0x8b])
 	mut pps := PictureParameterSet{}
 	pps.read_pps(mut pps_stream)
+	pps.pic_parameter_set_id = 11
+	pps.seq_parameter_set_id = 7
 	mut stored_pps := []u8{}
-	stored_pps << unsafe { byteptr(&pps).vbytes(int(sizeof(pps))) }
+	stored_pps << unsafe { byteptr(&pps).vbytes(int(sizeof(PictureParameterSet))) }
 
-	assert stored_sps.len == int(sizeof(sps))
-	assert stored_pps.len == int(sizeof(pps))
+	assert stored_sps.len == int(sizeof(SequenceParameterSet))
+	assert stored_pps.len == int(sizeof(PictureParameterSet))
+	stored_sps_record := unsafe { &SequenceParameterSet(stored_sps.data) }
+	stored_pps_record := unsafe { &PictureParameterSet(stored_pps.data) }
+	assert stored_sps_record.seq_parameter_set_id == 7
+	assert stored_pps_record.pic_parameter_set_id == 11
+	assert stored_pps_record.seq_parameter_set_id == 7
 }
