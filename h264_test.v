@@ -1,3 +1,5 @@
+// Exercises bit reads, NAL headers, and parameter-set parsing without a decoder or GPU.
+// Includes scaling-list regressions and checks for EOF and cursor-preserving look-ahead.
 module h264
 
 import encoding.hex
