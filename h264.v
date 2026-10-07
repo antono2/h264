@@ -412,11 +412,13 @@ pub fn (mut b Bitstream) read_scaling_list(mut scaling_list []i32, size_of_scali
 
 // read_hrd_parameters consumes HRD syntax at the current cursor into sps.hrd.
 // Normally called by read_vui_parameters; it does not schedule decoder buffering.
+// The coded count is one less than the number of entries and must be at most 31.
 pub fn (mut sps SequenceParameterSet) read_hrd_parameters(mut b Bitstream) {
 	sps.hrd.cpb_cnt_minus1 = b.ue()
+	assert sps.hrd.cpb_cnt_minus1 < 32
 	sps.hrd.bit_rate_scale = b.u(4)
 	sps.hrd.cpb_size_scale = b.u(4)
-	for sched_sel_idx in 0 .. sps.hrd.cpb_cnt_minus1 {
+	for sched_sel_idx in 0 .. sps.hrd.cpb_cnt_minus1 + 1 {
 		sps.hrd.bit_rate_value_minus1[sched_sel_idx] = b.ue()
 		sps.hrd.cpb_size_value_minus1[sched_sel_idx] = b.ue()
 		sps.hrd.cbr_flag[sched_sel_idx] = b.u1()
