@@ -1,32 +1,19 @@
 module h264
 
-// Minimal H264 video parser
-// Read the H264 specification: Rec. ITU-T H.264 (08/2021)
-// The following library was used as reference: https://github.com/aizvorski/h264bitstream/
-//
-// Use this to parse metadata information about a H264 video before passing it to a decoder.
-// You can use the following functions to access H264 information:
-//
-// Create byte array to consume binary data:
-// mut nal := h264.NetworkAbstractionLayerHeader{}
-// mut nal_header_bs := h264.Bitstream{}
-// nal_header_bs.init(data_sps.vbytes(1))
-//
-// Then you can read a NAL header after you detected a new NAL unit (starts with NalStartCode bytes):
-// nal.read_nal_header(mut nal_header_bs)
-//
-// After the NAL unit type was determined, you can use the following functions to read PPS, SPS and SliceHeaders (depending on NAL unit type):
-// pub fn (mut pps PictureParameterSet) read_pps(mut b Bitstream)
-// pub fn (mut sps SequenceParameterSet) read_sps(mut b Bitstream)
-// pub fn (mut sh SliceHeader) read_slice_header(nal &NetworkAbstractionLayerHeader, pps_array []PictureParameterSet, sps_array []SequenceParameterSet, mut b Bitstream)
-//
+// Parses H.264 NAL headers, parameter sets, and slice metadata for decoder setup.
+// Callers supply bounded, unescaped NAL/RBSP bytes and manage decoded pictures;
+// this module neither extracts container data nor decodes pixels.
+// Syntax reference: Rec. ITU-T H.264 (08/2021).
+// Implementation reference: https://github.com/aizvorski/h264bitstream/
 
-// pub const nal_start_code = [u8(0), 0, 1]
+// NalStartCode holds the three-byte Annex-B prefix; parsing does not strip it.
 pub struct NalStartCode {
 pub:
 	value []u8 = [u8(0), 0, 1]
 }
 
+// SequenceParameterSet stores sequence syntax, including optional VUI and HRD data.
+// Field names follow H.264 syntax; dimensions and cropping are not converted to pixels.
 pub struct SequenceParameterSet {
 pub mut:
 	profile_idc                           u32
@@ -75,6 +62,8 @@ pub mut:
 	hrd                                   SequenceParameterSetHypotheticalReferenceDecoder
 }
 
+// SequenceParameterSetVideoUsabilityInformation stores optional display and timing metadata.
+// Consult the corresponding presence flags before interpreting optional fields.
 pub struct SequenceParameterSetVideoUsabilityInformation {
 pub mut:
 	aspect_ratio_info_present_flag          u32
@@ -111,6 +100,8 @@ pub mut:
 	max_dec_frame_buffering                 u32
 }
 
+// SequenceParameterSetHypotheticalReferenceDecoder stores coded buffering and delay parameters.
+// Values retain their H.264 scale and minus-one encodings.
 pub struct SequenceParameterSetHypotheticalReferenceDecoder {
 pub mut:
 	cpb_cnt_minus1                          u32
@@ -125,6 +116,8 @@ pub mut:
 	time_offset_length                      u32
 }
 
+// PictureParameterSet stores picture syntax and its referenced sequence-parameter-set ID.
+// Use a fresh value for each parse so absent optional fields do not retain earlier data.
 pub struct PictureParameterSet {
 pub mut:
 	pic_parameter_set_id                   u32
@@ -161,6 +154,8 @@ pub mut:
 	second_chroma_qp_index_offset          i32
 }
 
+// SH_SLICE_TYPE names coded slice types; values 5 through 9 also constrain other slices.
+// SliceHeader.is_slice_type compares the underlying type without that constraint.
 pub enum SH_SLICE_TYPE {
 	p  = 0
 	b  = 1
@@ -175,6 +170,8 @@ pub enum SH_SLICE_TYPE {
 	si_only = 9
 }
 
+// SliceHeader stores parsed slice syntax and reference-management metadata.
+// It does not contain decoded samples or maintain a decoded-picture buffer.
 pub struct SliceHeader {
 pub mut:
 	first_mb_in_slice                u32
@@ -205,6 +202,7 @@ pub mut:
 	drpm                             SliceHeaderDecodedReferencePictureMarking
 }
 
+// SliceHeaderPredictiveWeightTable holds parsed luma/chroma prediction weights for both lists.
 pub struct SliceHeaderPredictiveWeightTable {
 pub mut:
 	luma_log2_weight_denom   u32
@@ -223,6 +221,7 @@ pub mut:
 	chroma_offset_l1         [64][2]i32
 }
 
+// SliceHeaderReferencePictureListReorder holds the flags and operations for both reference lists.
 pub struct SliceHeaderReferencePictureListReorder {
 pub mut:
 	ref_pic_list_reordering_flag_l0 u32
@@ -231,6 +230,7 @@ pub mut:
 	reorder_l1                      SliceHeaderReferencePictureListReorderL1
 }
 
+// SliceHeaderReferencePictureListReorderL0 stores list-0 reordering syntax in parse order.
 pub struct SliceHeaderReferencePictureListReorderL0 {
 pub mut:
 	reordering_of_pic_nums_idc [64]u32
@@ -238,6 +238,7 @@ pub mut:
 	long_term_pic_num          [64]u32
 }
 
+// SliceHeaderReferencePictureListReorderL1 stores list-1 reordering syntax in parse order.
 pub struct SliceHeaderReferencePictureListReorderL1 {
 pub mut:
 	reordering_of_pic_nums_idc [64]u32
@@ -245,6 +246,8 @@ pub mut:
 	long_term_pic_num          [64]u32
 }
 
+// SliceHeaderDecodedReferencePictureMarking stores reference-picture marking syntax.
+// The caller applies these operations to its decoder state.
 pub struct SliceHeaderDecodedReferencePictureMarking {
 pub mut:
 	no_output_of_prior_pics_flag        u32
@@ -257,6 +260,7 @@ pub mut:
 	max_long_term_frame_idx_plus1       [64]u32
 }
 
+// NAL_REF_IDC represents the two-bit reference importance carried in a NAL header.
 pub enum NAL_REF_IDC {
 	priority_highest    = 3
 	priority_high       = 2
@@ -264,6 +268,7 @@ pub enum NAL_REF_IDC {
 	priority_disposable = 0
 }
 
+// NAL_UNIT_TYPE identifies NAL payload kinds; a named kind is not a support guarantee.
 pub enum NAL_UNIT_TYPE {
 	unspecified                  = 0  // Unspecified
 	coded_slice_non_idr          = 1  // Coded slice of a non-IDR picture
@@ -282,12 +287,15 @@ pub enum NAL_UNIT_TYPE {
 	coded_slice_aux              = 19 // Coded slice of an auxiliary coded picture without partitioning
 }
 
+// NetworkAbstractionLayerHeader stores the reference importance and payload kind of one NAL.
 pub struct NetworkAbstractionLayerHeader {
 pub mut:
 	idc  NAL_REF_IDC
 	type NAL_UNIT_TYPE
 }
 
+// Bitstream tracks a most-significant-bit-first cursor over caller-supplied bytes.
+// Reads are not fallible: bits beyond the input are zero-filled, not reported as errors.
 pub struct Bitstream {
 pub mut:
 	start     int
@@ -297,7 +305,8 @@ pub mut:
 	bits_left u8
 }
 
-// Use byte array to not deal with pointers too much.
+// init resets the cursor to the start of buf without cloning the supplied bytes.
+// Keep the input available and unchanged while reading; framing and unescaping are external.
 pub fn (mut b Bitstream) init(buf []u8) {
 	b.b = buf
 	b.p = 0
@@ -305,10 +314,12 @@ pub fn (mut b Bitstream) init(buf []u8) {
 	b.bits_left = 8
 }
 
+// byte_aligned reports whether the cursor is at a byte boundary.
 pub fn (b Bitstream) byte_aligned() bool {
 	return b.bits_left == 8
 }
 
+// eof reports whether the cursor has reached or passed the input byte count.
 pub fn (b Bitstream) eof() bool {
 	if b.p >= b.end {
 		return true
@@ -316,8 +327,7 @@ pub fn (b Bitstream) eof() bool {
 	return false
 }
 
-// Read next bit and keep track of bits left.
-// Then jump to the next byte after 0 bits left
+// u1 consumes one bit, advancing the cursor even when EOF supplies a zero bit.
 pub fn (mut b Bitstream) u1() u32 {
 	mut r := u32(0)
 	b.bits_left--
@@ -331,7 +341,7 @@ pub fn (mut b Bitstream) u1() u32 {
 	return r
 }
 
-// Read unsigned int, n bits long
+// u consumes n bits as an unsigned value; n must be between 0 and 32 inclusive.
 pub fn (mut b Bitstream) u(n u32) u32 {
 	mut r := u32(0)
 	for i in 0 .. n {
@@ -340,8 +350,7 @@ pub fn (mut b Bitstream) u(n u32) u32 {
 	return r
 }
 
-// Read unsigned Exp-Golomb number
-// Count the bits until 1, that's the number of following bits to read into r
+// ue consumes an unsigned Exp-Golomb code without reporting malformed or truncated input.
 pub fn (mut b Bitstream) ue() u32 {
 	mut i := u32(0)
 
@@ -353,7 +362,7 @@ pub fn (mut b Bitstream) ue() u32 {
 	return r
 }
 
-// Read a signed Exp-Golomb number
+// se consumes a signed Exp-Golomb code using the same unchecked reads as ue.
 pub fn (mut b Bitstream) se() i32 {
 	mut r := i32(b.ue())
 	if (r & 0x01) != 0 {
@@ -364,6 +373,8 @@ pub fn (mut b Bitstream) se() i32 {
 	return r
 }
 
+// read_nal_header consumes one NAL header byte, without an Annex-B prefix or length field.
+// Asserts that forbidden_zero_bit is zero; does not validate payload completeness.
 pub fn (mut nal NetworkAbstractionLayerHeader) read_nal_header(mut b Bitstream) {
 	forbidden_zero_bit := b.u1()
 	assert forbidden_zero_bit == 0
@@ -371,6 +382,8 @@ pub fn (mut nal NetworkAbstractionLayerHeader) read_nal_header(mut b Bitstream) 
 	nal.type = unsafe { NAL_UNIT_TYPE(b.u(5)) }
 }
 
+// read_scaling_list writes decoded entries into caller-provided storage.
+// Provide at least size_of_scaling_list entries and a valid writable flag pointer.
 pub fn (mut b Bitstream) read_scaling_list(mut scaling_list []i32, size_of_scaling_list i32, use_default_scaling_matrix_flag &u32) {
 	mut last_scale := i32(8)
 	mut next_scale := i32(8)
@@ -397,6 +410,8 @@ pub fn (mut b Bitstream) read_scaling_list(mut scaling_list []i32, size_of_scali
 	}
 }
 
+// read_hrd_parameters consumes HRD syntax at the current cursor into sps.hrd.
+// Normally called by read_vui_parameters; it does not schedule decoder buffering.
 pub fn (mut sps SequenceParameterSet) read_hrd_parameters(mut b Bitstream) {
 	sps.hrd.cpb_cnt_minus1 = b.ue()
 	sps.hrd.bit_rate_scale = b.u(4)
@@ -412,6 +427,8 @@ pub fn (mut sps SequenceParameterSet) read_hrd_parameters(mut b Bitstream) {
 	sps.hrd.time_offset_length = b.u(5)
 }
 
+// read_rbsp_trailing_bits consumes the stop bit and advances to the next byte boundary.
+// It does not validate that the stop bit is one or that alignment bits are zero.
 pub fn (mut b Bitstream) read_rbsp_trailing_bits() {
 	// rbsp_stop_one_bit
 	b.u1()
@@ -421,6 +438,8 @@ pub fn (mut b Bitstream) read_rbsp_trailing_bits() {
 	}
 }
 
+// read_vui_parameters consumes optional display, timing, and buffering syntax.
+// Normally called by read_sps when the VUI presence flag is set.
 pub fn (mut sps SequenceParameterSet) read_vui_parameters(mut b Bitstream) {
 	sps.vui.aspect_ratio_info_present_flag = b.u1()
 	if sps.vui.aspect_ratio_info_present_flag != 0 {
@@ -481,6 +500,7 @@ pub fn (mut sps SequenceParameterSet) read_vui_parameters(mut b Bitstream) {
 	}
 }
 
+// intlog2 returns the bit width needed for values in [0, x), or zero for x <= 1.
 pub fn intlog2(x i32) i32 {
 	mut log := i32(0)
 	mut xx := x
@@ -512,6 +532,7 @@ pub fn intlog2(val i32) i32 {
 }
 */
 
+// more_rbsp_data reports whether more than trailing bits remain, preserving the cursor.
 pub fn (mut b Bitstream) more_rbsp_data() bool {
 	// No more data
 	if b.eof() { return false }
@@ -549,6 +570,8 @@ pub fn (mut b Bitstream) more_rbsp_data() bool {
 	return false
 }
 
+// read_sps consumes an SPS RBSP payload after its NAL header, including trailing bits.
+// Use a fresh SequenceParameterSet and remove emulation-prevention bytes beforehand.
 pub fn (mut sps SequenceParameterSet) read_sps(mut b Bitstream) {
 	sps.profile_idc = b.u(8)
 	sps.constraint_set0_flag = b.u1()
@@ -634,6 +657,8 @@ pub fn (mut sps SequenceParameterSet) read_sps(mut b Bitstream) {
 	b.read_rbsp_trailing_bits()
 }
 
+// read_pps consumes a PPS RBSP payload after its NAL header, including trailing bits.
+// Use a fresh PictureParameterSet and remove emulation-prevention bytes beforehand.
 pub fn (mut pps PictureParameterSet) read_pps(mut b Bitstream) {
 	pps.pic_parameter_set_id = b.ue()
 	pps.seq_parameter_set_id = b.ue()
@@ -706,6 +731,7 @@ pub fn (mut pps PictureParameterSet) read_pps(mut b Bitstream) {
 	b.read_rbsp_trailing_bits()
 }
 
+// is_slice_type compares base slice types, treating each *_only value like its base type.
 pub fn (sh SliceHeader) is_slice_type(cmp_type SH_SLICE_TYPE) bool {
 	mut mslice_type := sh.slice_type
 	mut mcmp_type := u32(cmp_type)
@@ -715,6 +741,8 @@ pub fn (sh SliceHeader) is_slice_type(cmp_type SH_SLICE_TYPE) bool {
 	return false
 }
 
+// read_ref_pic_list_reordering consumes reference-list operations for the current slice type.
+// Called by read_slice_header at the appropriate syntax position.
 pub fn (mut sh SliceHeader) read_ref_pic_list_reordering(mut b Bitstream) {
 	if !sh.is_slice_type(SH_SLICE_TYPE.i) && !sh.is_slice_type(SH_SLICE_TYPE.si) {
 		sh.rplr.ref_pic_list_reordering_flag_l0 = b.u1()
@@ -764,6 +792,8 @@ pub fn (mut sh SliceHeader) read_ref_pic_list_reordering(mut b Bitstream) {
 	}
 }
 
+// read_pred_weight_table consumes prediction weights using the supplied parameter sets.
+// Called by read_slice_header when weighted prediction syntax is present.
 pub fn (mut sh SliceHeader) read_pred_weight_table(sps &SequenceParameterSet, pps &PictureParameterSet, mut b Bitstream) {
 	sh.pwt.luma_log2_weight_denom = b.ue()
 	if sps.chroma_format_idc != 0 {
@@ -810,6 +840,8 @@ pub fn (mut sh SliceHeader) read_pred_weight_table(sps &SequenceParameterSet, pp
 	}
 }
 
+// read_dec_ref_pic_marking consumes reference-picture marking syntax for the supplied NAL.
+// It records operations without applying them to decoder resources.
 pub fn (mut sh SliceHeader) read_dec_ref_pic_marking(nal &NetworkAbstractionLayerHeader, mut b Bitstream) {
 	if nal.type == NAL_UNIT_TYPE.coded_slice_idr {
 		sh.drpm.no_output_of_prior_pics_flag = b.u1()
@@ -844,6 +876,10 @@ pub fn (mut sh SliceHeader) read_dec_ref_pic_marking(nal &NetworkAbstractionLaye
 	}
 }
 
+// read_slice_header consumes slice metadata after its NAL header.
+// Pass fresh output storage and SPS/PPS arrays indexed by their syntax IDs, not arrival order.
+// Missing array entries beyond the supplied lengths panic; in-range entries must be populated.
+// The remaining coded slice data is left for the decoder.
 pub fn (mut sh SliceHeader) read_slice_header(nal &NetworkAbstractionLayerHeader, pps_array []PictureParameterSet, sps_array []SequenceParameterSet, mut b Bitstream) {
 	sh.first_mb_in_slice = b.ue()
 	sh.slice_type = b.ue()
