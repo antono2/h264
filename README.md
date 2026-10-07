@@ -92,7 +92,9 @@ v -cc msvc test .
 
 They cover fixed-width and Exp-Golomb bit reading, truncated input behavior,
 NAL headers, RBSP look-ahead, integer bit widths, and representative
-High-profile SPS/PPS parsing used by the player.
+High-profile SPS/PPS parsing used by the player. HRD buffering syntax tests cover
+one, two, and the maximum 32 CPB entries, including alignment of the following
+delay fields. Counts beyond 32 entries are rejected by an assertion.
 
 CI also runs strict V3 with TinyCC on Linux, using a pinned compiler snapshot.
 The regression samples cover custom SPS/PPS scaling lists and the default-list
