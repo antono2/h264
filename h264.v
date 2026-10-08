@@ -1,6 +1,6 @@
 module h264
 
-// Parses H.264 NAL headers, parameter sets, and slice metadata for decoder setup.
+// Parses H.264 NAL headers, parameter sets and slice metadata for decoder setup.
 // Callers supply bounded, unescaped NAL/RBSP bytes and manage decoded pictures;
 // this module neither extracts container data nor decodes pixels.
 // Syntax reference: Rec. ITU-T H.264 (08/2021).
@@ -440,7 +440,7 @@ pub fn (mut b Bitstream) read_rbsp_trailing_bits() {
 	}
 }
 
-// read_vui_parameters consumes optional display, timing, and buffering syntax.
+// read_vui_parameters consumes optional display, timing and buffering syntax.
 // Normally called by read_sps when the VUI presence flag is set.
 pub fn (mut sps SequenceParameterSet) read_vui_parameters(mut b Bitstream) {
 	sps.vui.aspect_ratio_info_present_flag = b.u1()

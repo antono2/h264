@@ -5,7 +5,7 @@ import encoding.hex
 
 fn test_hrd_reads_all_cpb_entries() {
 	// H.264 E.1.2 encodes count minus one. Fixtures contain 1, 2 and 32 CPBs,
-	// distinct entry values, four delay widths, and an 0xa5 cursor sentinel.
+	// distinct entry values, four delay widths and an 0xa5 cursor sentinel.
 	for count, encoded in {
 		1:  '9a30208a63a294'
 		2:  '468c08220102531d14a0'
