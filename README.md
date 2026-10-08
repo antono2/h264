@@ -4,10 +4,9 @@
 
 This module parses the H.264/AVC syntax needed by Vulkan Video applications:
 NAL headers, sequence and picture parameter sets (SPS/PPS), video usability
-information (VUI), and slice headers.
+information (VUI) and slice headers.
 
-It is **not** a video decoder: it does not perform entropy decoding, motion
-compensation, inverse transforms, or produce pixels. The
+It is **not** a video decoder: it does not perform entropy decoding, motion compensation or inverse transforms, and it does not produce pixels. The
 [`v_vulkan_video`](https://github.com/antono2/v_vulkan_video) player uses these
 parsed structures to prepare hardware decode operations.
 
@@ -39,7 +38,7 @@ assert header.type == .sps
 
 `Bitstream.init()` expects raw RBSP/NAL bytes in memory. Container extraction,
 length prefixes or Annex-B start codes, emulation-prevention removal, frame
-reordering, and decoded-picture management remain the caller's responsibility.
+reordering and decoded-picture management remain the caller's responsibility.
 
 ## Parsing order and caller responsibilities
 
@@ -64,7 +63,7 @@ bytes available and unchanged while parsing, and give concurrent parses
 separate cursors and output structures. Parameter-set readers consume trailing
 RBSP bits; the slice-header reader leaves the remaining coded slice data for
 the decoder. Returned fields retain their H.264 syntax encodings rather than
-being normalized into dimensions, frame rates, or decoder operations.
+being normalized into dimensions, frame rates or decoder operations.
 
 ## Safety and supported scope
 
@@ -75,7 +74,7 @@ boundaries before parsing them.
 
 The implementation covers the syntax exercised by the Vulkan Video H.264
 player and is not yet a claim of complete support for every profile, extension,
-bit depth, chroma format, or interlaced stream.
+bit depth, chroma format or interlaced stream.
 
 ## Tests
 
@@ -91,9 +90,9 @@ v -cc msvc test .
 ```
 
 They cover fixed-width and Exp-Golomb bit reading, truncated input behavior,
-NAL headers, RBSP look-ahead, integer bit widths, and representative
+NAL headers, RBSP look-ahead, integer bit widths and representative
 High-profile SPS/PPS parsing used by the player. HRD buffering syntax tests cover
-one, two, and the maximum 32 CPB entries, including alignment of the following
+one, two and the maximum 32 CPB entries, including alignment of the following
 delay fields. Counts beyond 32 entries are rejected by an assertion.
 
 CI also runs strict V3 with TinyCC on Linux, using a pinned compiler snapshot.
